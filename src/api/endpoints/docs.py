@@ -30,6 +30,7 @@ async def generate(
         pageAnalysis: str = Form(...),
         pageResult: str = Form(...),
         pageUseCase: str = Form(...),
+        requirement: str = Form(...),
         files: list[UploadFile] = File(...),
     ):
     print('generate')
@@ -42,7 +43,8 @@ async def generate(
         pageAnalysis,
         pageResult,
         pageUseCase,
-        file_contents
+        file_contents,
+        requirement
     )            
     return response
 @router.get('/public/doc/{file_name}')

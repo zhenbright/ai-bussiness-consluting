@@ -23,7 +23,8 @@ class GenerateService:
         pageAnalysis: str,
         pageResult: str,
         pageUseCase: str,
-        file_contents: str
+        file_contents: str,
+        requirement: str
     ):  
 
         # Create Assistant
