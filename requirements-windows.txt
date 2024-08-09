@@ -1,0 +1,17 @@
+httpx
+pytest
+black
+isort
+mypy
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+requests
+Pillow
+colorlog
+modal
+fpdf2
+html2docx
+openai
+WeasyPrint
