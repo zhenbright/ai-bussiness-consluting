@@ -34,6 +34,7 @@ async def generate(
         files: list[UploadFile] = File(...),
     ):
     print('generate')
+    print(requirement)
     # return {"file_url": f"/public/doc/2024-07-28-12-34_10.docx","pdf_url": f"/public/pdf/2024-08-01-02-49_47.pdf", "success": True}
     file_contents = await file_service.uploadFiles(files)
     
