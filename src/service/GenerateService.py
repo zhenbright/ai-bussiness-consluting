@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from html2docx import html2docx
 from openai import OpenAI
 import pdfkit
+from src.contstants.requirement import outline
 
 load_dotenv()
 
@@ -44,7 +45,7 @@ class GenerateService:
                 {
                 "role": "user",
                 "content":  f"""Please read the following text and extract the main points and key information:{file_contents}
-                            You should meet these requirement at leat.
+                            You should meet these requirement at least.
                             {requirement}
                             """,
                 }
@@ -56,68 +57,48 @@ class GenerateService:
         messages = list(self.client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
         key_information = messages[0].content[0].text
         print(key_information)
-        # Extract Outlines from mainpoints for PDF
+        # Extract Outlines from main points for PDF
         # This is System Prompt to extract
+        
         outline_system_prompt = """
-            You are an AI language model tasked with generating an outline or table of contents for a new document based on the provided specifications about ****.
-            The document should be structured into three main sections: Analysis, Results, and Case Uses. The total length of the document should be 3 chaperters, 70 pages, divided as follows:
+            You are an AI language model tasked with generating an outline or table of contents for a new document based on the provided specifications about {service}
+            The document should be structured into three main sections: Analysis, Results, and Case Uses.
+            The total length of the document must be 2 chapters, {70} pages, divided as follows:
 
-            Analysis: {xx} pages
-            Results: {yy} pages
-            Case Uses: {zz} pages
+            Analysis: {pageAnalysis} pages
+            Results: {pageResult} pages
             Follow these steps:
 
-            Analysis ({xx} pages):
+            Analysis ({pageAnalysis} pages):
 
                 Thoroughly analyze the content of the uploaded files.
                 Highlight key insights, data, and trends.
                 Discuss the methodology and approach used in the service.
                 Provide detailed explanations and interpretations of the data.
-            Results ({yy} pages):
-
-                Summarize the findings and outcomes from the analysis.
-                Present quantitative and qualitative results.
-                Include relevant charts, graphs, and tables for better understanding.
-                Discuss the significance of the results and their implications.
-            Case Uses ({zz} pages):
-
-                Provide real-world examples and case studies where the service has been applied.
-                Detail the benefits and impacts observed in each case.
-                Discuss any challenges faced and how they were overcome.
-                Include testimonials or quotes from users or stakeholders if available.
+            Results ({pageResult} pages):
+                
             Ensure that the content is well-organized, coherent, and flows logically from one section to the next. Use appropriate headings and subheadings to enhance readability. The final document should be informative, engaging, and professional.
-
+ 
             Outline/Table of Contents:
 
             Generate a detailed outline or table of contents for the document, including:
 
-            Chapter 1: Analysis ({xx} pages):
-
-                Introduction
-                Data Collection Methods
-                Key Insights and Trends
-                Methodology
-                Detailed Data Analysis
-                Interpretation of Data
+            Chapter 1: Analysis of Company({pageAnalysis} pages):
+                Divide section according to given key information about company.
                 
-            Chapter 2: Results ({yy} pages):
-                Summary of Findings
-                Quantitative Results
-                Qualitative Results
-                Charts and Graphs
-                Significance and Implications
-                
-            Chapter 3: Case Uses ({zz} pages):
-                Case Study 1: [Case Name]
-                Case Study 2: [Case Name]
-                Case Study 3: [Case Name]
-                Benefits and Impacts
-                Challenges and Solutions
-                Testimonials
-            Note: Replace 'xx', 'yy', and 'zz' with the appropriate number of pages based on the total document length of 70 pages and write the number of pages for each section next to the section and heading title. Please write page numbers for each paragraph, section, chapter next to the title. Refer to the uploaded files for all necessary data and information to be included in the document. The final outline/table of contents should clearly indicate the chapters and sections.
+            Chapter 2: Results ({pageResult} pages):
+               {outline[service]['result']}
+            Chapter 3: Case Use ({pageUseCase} pages):
+                {outline[service]['use_case']}
+               
+            Note: Write the number of pages for each section next to the section and heading title.
+            Please write page numbers for each paragraph, section, chapter next to the title.
+            Refer to the uploaded files for all necessary data and information to be included in the document.
+            The final outline/table of contents should clearly indicate the chapters and sections.
 
             You are also an assistant that generates structured content. 
-            I want you to create a book table of contents in JSON format. The structure should include the book title, and a list of chapters. Each chapter should have a chapter number, chapter title, start page, and total pages. Each chapter should also have a list of sections. Each section should have a section number, section title, start page, and total pages.
+            I want you to create a book table of contents in JSON format.
+            The structure should include the book title, and a list of chapters. Each chapter should have a chapter number, chapter title, start page, and total pages. Each chapter should also have a list of sections. Each section should have a section number, section title, start page, and total pages.
 
             The output structure must be a valid JSON object with a structure like this example format:
             
@@ -144,18 +125,18 @@ class GenerateService:
                     }
                 ]
                 }
-                // Add more chapters as needed
+                //Add more chapters as needed
                 ]
             }
             
             JSON output with no extraneous text or wrappers:
             """
         # Replace placeholders with actual page numbers
-        prompt = outline_system_prompt.replace('xx', str(pageAnalysis)) \
-                            .replace('yy', str(pageResult)) \
-                            .replace('zz', str(pageUseCase)) \
-                            .replace('****', str(service))
-
+        # prompt = outline_system_prompt.replace('xx', str(pageAnalysis)) \
+        #                     .replace('yy', str(pageResult)) \
+        #                     .replace('****', str(service))
+                            # .replace('70', str(70 - int(pageUseCase))) \
+        prompt = outline_system_prompt
         # Create Assistant
         assistant = self.client.beta.assistants.create(
             name="Business Analysis Assistant",
@@ -191,7 +172,48 @@ class GenerateService:
             outline_object = json.loads(message_content.value)
         print(outline_object)
         
-        
+        #case study outline
+        # assistant = self.client.beta.assistants.update(
+        #     assistant_id=assistant.id,
+        #     instructions="""
+        #         Based on this information, please provide the top three successful companies which have same goals with this company.
+        #         You are also an assistant that generates structured content. 
+        #         I want you to create a book table of contents in JSON format.
+        #         The structure should include the company name and the title of case use and main content.
+        #         Each chapter should have a chapter number, chapter title, total pages.
+        #         The output structure must be a valid JSON object with a structure like this example format:
+        #         [{
+        #         "company": "company title",
+        #         "case_use": "case title",
+        #         "content": "explain of case",
+        #         "section_number: "1",
+        #         "pages": 3
+        #         }]
+        #     """
+        # )
+        # thread = self.client.beta.threads.create(
+        #     messages=[
+        #         {
+        #         "role": "user",
+        #         "content": f"Reference Information: {key_information}",
+        #         }
+        #     ]
+        # )
+        # run = self.client.beta.threads.runs.create_and_poll(
+        #     thread_id=thread.id, assistant_id=assistant.id
+        # )
+        # messages = list(self.client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+        # message_content = messages[0].content[0].text
+
+        # match = re.search(r'```json(.*?)```', message_content.value, re.DOTALL)
+        # print(match)
+        # if match:
+        #     json_string = match.group(1).strip()
+        #     case_outline_object = json.loads(json_string)
+        # else:
+        #     case_outline_object = json.loads(message_content.value)
+             
+        # print(case_outline_object)
         # print("update assistant")
         # assistant = self.client.beta.assistants.update(
         #     assistant_id=assistant.id,
@@ -222,7 +244,7 @@ class GenerateService:
         #                     - Define key milestones and KPIs for each stage to help the client track progress and measure success.
 
         #                 6. **Enhanced Visual Aids**:
-        #                     - Utilize infographics, flowcharts, and diagrams to simplify complex concepts and enhance engagement.
+        #                     - Utilize info graphics, flowcharts, and diagrams to simplify complex concepts and enhance engagement.
         #                     - Incorporate advanced data visualizations or interactive elements to allow for deeper exploration of data.
 
         #                 7. **Interactive and Adaptive Content**:
@@ -236,11 +258,14 @@ class GenerateService:
         #                 Instructions:
         #                 - The content should be delivered in HTML format, excluding body and head tags, for easy integration into existing HTML documents.
         #                 - Conclusions are only needed at the end of each chapter, not for every section.
-        #                 - Ensure all content is unique, detailed, and specifically tailored to the client’s needs, avoiding any duplication.
+        #                 - Ensure all content is unique, and specifically tailored to the client’s needs, avoiding any duplication.
+        #                 - Please do not too detailed (Don't explain with too many subscriptions).
         #                 """,
         # )        
         
         # print(f"Title: {outline_object['title']}")
+        
+        
         # with open("temp.html", 'w', encoding="utf-8") as file:
         #     # Write the beginning of the HTML document
         #     file.write(""""
@@ -299,8 +324,63 @@ class GenerateService:
         #                         # Add paragraph
         #                         file.write(f"{section['description']}")
         #                 print(run.status)
-        #         #     break
+        #             # break
         #         # break
+
+        #     file.write(f"<h1>Chapter 3. Case Study</h1>\n")
+            
+        #     chapter_title = 'Case Study'
+        #     for section in case_outline_object:
+        #         st_sc_time = time.time()
+        #         company = section["company"]
+        #         case_use = section["case_use"]
+        #         content = section["content"]
+        #         pages = section["pages"]
+        #         section_number = section["section_number"]
+        #         #generate section description
+        #         message = self.client.beta.threads.messages.create(
+        #             thread_id=thread.id,
+        #             role="user",
+        #             content=f"""{case_use} of {company} in {pages * 500} words.
+        #                 Especially:
+        #                 {content}
+        #             """
+        #         )
+        #         run = self.client.beta.threads.runs.create_and_poll(
+        #             thread_id=thread.id, assistant_id=assistant.id
+        #         )
+        #         messages = self.client.beta.threads.messages.list(
+        #             thread_id=thread.id
+        #         )
+        #         run_messages = [msg for msg in messages if msg.run_id == run.id]
+                
+        #         if run.status == 'completed':
+        #             for msg in run_messages:
+        #                 if msg.role == 'assistant':  # Assuming the assistant's role is labeled as 'assistant'
+        #                     print(f"Response for section '{case_use}':")
+        #                     description = ''
+        #                     match = re.search(r'```html(.*?)```', msg.content[0].text.value, re.DOTALL)
+        #                     if match:
+        #                         description = match.group(1).strip()
+        #                     else:
+        #                         description = msg.content[0].text.value
+        #                     section['description'] = description
+        #                     print(len(description))
+        #                     response = self.client.images.generate(
+        #                         model="dall-e-3",
+        #                         prompt=f"{case_use} of {company}",
+        #                         size="1024x1024",
+        #                         quality="standard",
+        #                         n=1
+        #                     )
+        #                     section['image_url'] = response.data[0].url
+        #                     file.write(f"<h2> Section {section_number} {case_use} of {company}</h2>")
+        #                     # Add image
+        #                     file.write(f"<img src='{case_use} of {company} image'>")
+        #                     # Add paragraph
+        #                     file.write(f"{section['description']}")
+        #             print(run.status)
+        #     # print(event)
         #     file.write('</body>\n</html>')
             
         # # create docx file from html
