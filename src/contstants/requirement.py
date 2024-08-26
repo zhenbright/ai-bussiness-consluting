@@ -33,11 +33,11 @@ outline = {
                 ○ Based on the market analysis, recommendations will be provided on the tools that best suit the company, specifically highlighting the specific reasons for these recommendations.
         """,
         "use_case": """
-        Definition of business KPIs or support areas (HR, economic, etc.):
-        ● Dosier with the analysis of current KPIs, including:
-            ○ Analysis of current KPIs: Review of the current KPIs used by the SME in different areas (finance, sales, etc.).
-            ○ Identifying improvements: Identify useful KPIs, highlighting their positive and/or negative qualities (e.g., accurate, redundant, difficult to measure, etc.).
-            ○ Proposing the creation of new KPIs: Proposing the creation of KPIs based on the analysis performed. These KPIs must be fully detailed, including, at a minimum: (1) specific calculation formulas for each KPI, (2) constructed metrics, and (3) variables involved in their calculation.
+            Definition of business KPIs or support areas (HR, economic, etc.):
+            ● Dosier with the analysis of current KPIs, including:
+                ○ Analysis of current KPIs: Review of the current KPIs used by the SME in different areas (finance, sales, etc.).
+                ○ Identifying improvements: Identify useful KPIs, highlighting their positive and/or negative qualities (e.g., accurate, redundant, difficult to measure, etc.).
+                ○ Proposing the creation of new KPIs: Proposing the creation of KPIs based on the analysis performed. These KPIs must be fully detailed, including, at a minimum: (1) specific calculation formulas for each KPI, (2) constructed metrics, and (3) variables involved in their calculation.
         """
     },
     "Advanced Data Analysis" : {

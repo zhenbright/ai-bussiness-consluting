@@ -15,3 +15,5 @@ fpdf2
 html2docx
 openai
 WeasyPrint
+pymupdf
+textract
