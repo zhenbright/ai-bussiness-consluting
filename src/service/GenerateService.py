@@ -223,6 +223,7 @@ class GenerateService:
             # file.write(f"<h2>Section {section['section_number']}. {section['section_title']}</h2>")
             try:
                 if section.get('subsections'):
+                    file.write(f"<h2>Section {section['section_number']} {section['section_title']}</h2>")
                     for subsection in section['subsections']:
                         print(subsection)
                         if subsection.get('section_number'):
@@ -258,17 +259,17 @@ class GenerateService:
                                     else:
                                         description = msg.content[0].text.value
 
-                                    response = self.client.images.generate(
-                                        model="dall-e-3",
-                                        prompt=f"{section_title} of Analysis Company",
-                                        size="1024x1024",
-                                        quality="standard",
-                                        n=1
-                                    )
-                                    image_url = response.data[0].url
-                                    file.write(f"<h2>Section {section_number} {section_title}</h2>")
+                                    # response = self.client.images.generate(
+                                    #     model="dall-e-3",
+                                    #     prompt=f"{section_title} of Analysis Company",
+                                    #     size="1024x1024",
+                                    #     quality="standard",
+                                    #     n=1
+                                    # )
+                                    # image_url = response.data[0].url
+                                    file.write(f"<h2>Section {section['section_number']}.{section_number} {section_title}</h2>")
                                     # Add image
-                                    file.write(f"<img src='{image_url}' alt='{section_title} image'>")
+                                    # file.write(f"<img src='{image_url}' alt='{section_title} image'>")
                                     # Add paragraph
                                     file.write(f"{description}")
                 else:
@@ -305,23 +306,97 @@ class GenerateService:
                                 else:
                                     description = msg.content[0].text.value
 
-                                response = self.client.images.generate(
-                                    model="dall-e-3",
-                                    prompt=f"{section_title} of Analysis Company",
-                                    size="1024x1024",
-                                    quality="standard",
-                                    n=1
-                                )
-                                image_url = response.data[0].url
+                                # response = self.client.images.generate(
+                                #     model="dall-e-3",
+                                #     prompt=f"{section_title} of Analysis Company",
+                                #     size="1024x1024",
+                                #     quality="standard",
+                                #     n=1
+                                # )
+                                # image_url = response.data[0].url
                                 file.write(f"<h2>Section {section_number} {section_title}</h2>")
                                 # Add image
-                                file.write(f"<img src='{image_url}' alt='{section_title} image'>")
+                                # file.write(f"<img src='{image_url}' alt='{section_title} image'>")
                                 # Add paragraph
+                                file.write(f"{description}")
             except IOError as e:
                 # Log the specific error
                 print(f"IOError occurred: {e}")
                 file.write('')
+
+    def generateGraphTable(self, file_contents):
+        print('generate and pdf')
+        response = {}
+        self.assistant = self.client.beta.assistants.create(
+            model="gpt-4o",
+            name="Business Analysis Assistant",
+            instructions="""
+                You are an AI assistant designed to extract and generate maximum graphs and tables based on user input (at least 5 for each).
+                Your primary goal is to present information in the most structured, visual, and easy-to-understand format.
+                You should respond to user queries with data in table or graph form wherever possible, using the following strategies:
+
+                1. Data Visualization Preference:
+                    Prioritize presenting data as graphs (e.g., bar charts, line charts, pie charts) or tables when summarizing information.
+                    If no direct data is provided, suggest the appropriate graph or table based on the type of data the user requests.
+                2. Structured Output:
+                    Always organize information in a way that emphasizes clarity and conciseness.
+                    Use tables for comparisons, lists, or categorical data.
+                    Use graphs for trends, relationships, and quantitative data.
+                3. Graph Types:
+                    Bar charts for comparing discrete categories.
+                    Line charts for showing trends over time.
+                    Pie charts for illustrating proportions.
+                    Scatter plots for correlations between variables.
+                4. Table Generation:
+                    Create tables to summarize, compare, and list out key information.
+                    Tables should have clear headers and rows for easy readability.
+                5. Response Formatting:
+                    Introduce the table or graph with a brief explanation.
+                    Ensure that any numerical data or comparison is accompanied by a corresponding visual representation if relevant.
+                6. Iterative Refinement:
+                    If the user provides feedback on a graph or table, refine the structure or visuals accordingly.
+                    Experiment with different visual styles to best match the user’s needs.
                 
+                The output structure must be a valid JSON object with a structure like this example format:
+                {
+                    "graphs": [
+                        {
+                        "title": "graph title",
+                        "description": "This graphs shows ...",
+                        "content": This should be html text content for graph with no extraneous or wrappers. (using highcharts library)
+                        },
+                        //Add more graphs
+                    ],
+                    "tables": [
+                        {
+                        "title": "table title",
+                        "description": "This tables shows ...",
+                        "content": This should be html text content for table with no extraneous or wrappers,
+                        },
+                        //Add more tables
+                    ],
+                }
+                JSON output with no extraneous text or wrappers.
+                
+                The result should be html content.
+            """,
+        )
+        # Create new thread to extract main points from file contents
+        thread = self.client.beta.threads.create(
+            messages=[
+                {
+                "role": "user",
+                "content":  f"""Please read the following text and extract the main points and generate tables and graphs:{file_contents}""",
+                }
+            ]
+        )
+        run = self.client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=self.assistant.id
+        )
+        messages = list(self.client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+        key_information = messages[0].content[0].text.value
+        graph_object = self.extract_json_from_string(key_information)
+        return graph_object 
     def generate(
         self,
         service: str,
@@ -335,13 +410,13 @@ class GenerateService:
         # Create Assistant
         key_information = self.extract_key_information(file_contents)
         # Extract Outlines from main points for PDF
-        
+        print(outline[service]['use_case'])
         analysis_outline = self.generate_analysis_outline(pageAnalysis, information=file_contents)
         # print(analysis_outline)
         result_outline = self.generate_result_outline(pageResult, requirement=outline[service]['result'])
         # print(result_outline)
         case_outline = self.generate_case_use_outline(pageUseCase, requirement=outline[service]['use_case'])
-        # print(case_outline)
+        print(case_outline)
         thread = self.client.beta.threads.create()
         
         system_prompt = f"""
@@ -388,11 +463,11 @@ class GenerateService:
             )
             self.generate_content(analysis_outline, file, thread, 'analysis of company')
             # Result Company
-            file.write("<h1>Chapter 2. Result\n")
+            file.write("<h1>Chapter 2. Result</h1>\n")
             self.generate_content(result_outline, file, thread, 'result of analysis')
             # Case Use Company
-            file.write("<h1>Chapter 2. Case Use\n")
-            self.generate_content(result_outline, file, thread, 'case use of successful companies which have same goal and objective with given company')           
+            file.write("<h1>Chapter 3. Case Use</h1>\n")
+            self.generate_content(case_outline, file, thread, 'case use of successful companies which have same goal and objective with given company')           
             
             file.write('</body>\n</html>')
 
@@ -424,7 +499,20 @@ class GenerateService:
                 print(f"IOError occurred: {e}")
         
         print(f"PDF created: {output_pdf_path}")  
-        return {"file_url": f"/{file_path}", "pdf_url": f"/{output_pdf_path}", "success": True}
+        
+        is_match = True
+        
+        return {
+                "success": True,
+                "file_url": f"/{file_path}",
+                "pdf_url": f"/{output_pdf_path}",
+                'is_match': is_match,
+                "outline": [
+                    analysis_outline, 
+                    result_outline, 
+                    case_outline
+                    ]
+                }
         # return ''
     
     

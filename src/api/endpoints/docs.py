@@ -5,6 +5,7 @@ from src.service.FileService import FileService
 from src.utils.logging_config import CustomLogger
 from starlette.responses import RedirectResponse
 from src.service.GenerateService import GenerateService
+from src.contstants.style import style
 import time
 # Get the logger instance from the CustomLogger class
 logger = CustomLogger().get_logger
@@ -46,6 +47,29 @@ async def generate(
         file_contents,
         requirement
     )            
+    return response
+@router.post('/generate/graph_table')
+async def generateGraphTable(
+    files: list[UploadFile] = File(...),
+):
+    file_contents = await file_service.uploadFiles(files)
+    response = generate_service.generateGraphTable(file_contents)
+    with open("temp.html", 'w', encoding="utf-8") as file:
+        html = """
+                <html>\n<head>\n<title>Document</title>\n
+                <meta charset="utf-8" />\n
+                </head>\n<body>\n
+                <script src="https://code.highcharts.com/highcharts.js"></script>
+            """
+        html += f"<style>{style}</style>"
+        for graph in response["graphs"]:
+            print('0000000')
+            html += graph["content"]
+        for table in response["tables"]:
+            print('111111')
+            html += table["content"]
+        file.write(html)
+        file.write('</body>\n</html>')
     return response
 @router.get('/public/doc/{file_name}')
 async def download_doc(file_name: str):
